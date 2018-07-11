@@ -23,19 +23,5 @@ public abstract class Logging {
     @Description("Storage type, must be either 'inline' or 'external'.")
     @JsonIgnore
     public abstract String getType();
-
-    // Hack
-    private ConfigMap cm;
-
-    @JsonIgnore
-    @Deprecated
-    public ConfigMap getCm() {
-        return cm;
-    }
-
-    @Deprecated
-    public void setCm(ConfigMap cm) {
-        this.cm = cm;
-    }
 }
 
