@@ -15,6 +15,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static io.fabric8.kubernetes.client.internal.PatchUtils.patchMapper;
+import static io.strimzi.operator.cluster.operator.resource.StatefulSetOperator.ANNOTATION_GENERATION;
 import static java.lang.Integer.parseInt;
 import static java.util.Arrays.asList;
 
@@ -65,6 +66,7 @@ public class StatefulSetDiff {
     private final boolean changesSpecTemplateSpec;
     private final boolean changesLabels;
     private final boolean changesSpecReplicas;
+    private boolean forcedRestart = false;
 
     public StatefulSetDiff(StatefulSet current, StatefulSet desired) {
         JsonNode diff = JsonDiff.asJson(patchMapper().valueToTree(current), patchMapper().valueToTree(desired));
@@ -100,6 +102,13 @@ public class StatefulSetDiff {
         this.changesSpecReplicas = changesSpecReplicas;
         this.changesSpecTemplateSpec = changesSpecTemplateSpec;
         this.changesVolumeClaimTemplate = changesVolumeClaimTemplate;
+        boolean tmp;
+        try {
+            tmp = desired.getSpec().getTemplate().getMetadata().getAnnotations().get(ANNOTATION_GENERATION).equals("-1");
+        } catch (NullPointerException e) {
+            tmp = false;
+        }
+        this.forcedRestart = tmp;
     }
 
     private JsonNode getFromPath(StatefulSet current, String pathValue) {
@@ -145,5 +154,10 @@ public class StatefulSetDiff {
     /** Returns true if there's a difference in {@code /spec/replicas} */
     public boolean changesSpecReplicas() {
         return changesSpecReplicas;
+    }
+
+    /** Returns true if there's -1 set in SS generation */
+    public boolean isForcedRestart() {
+        return forcedRestart;
     }
 }

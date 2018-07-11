@@ -17,6 +17,10 @@ spec:
       transaction.state.log.min.isr: 2
     storage:
       type: ephemeral
+    logging:
+      type: inline
+      loggers:
+          kafka.root.logger.level: "INFO"
     metrics:
       lowercaseOutputName: true
       rules:
@@ -36,6 +40,10 @@ spec:
       timeoutSeconds: 5
     storage:
       type: ephemeral
+    logging:
+      type: inline
+      loggers:
+          zookeeper.root.logger: "ERROR"
     metrics:
       lowercaseOutputName: true
   topicOperator: { }

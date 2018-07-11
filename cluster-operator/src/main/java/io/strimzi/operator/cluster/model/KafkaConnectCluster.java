@@ -232,9 +232,6 @@ public class KafkaConnectCluster extends AbstractModel {
         varList.add(buildEnvVar(ENV_VAR_KAFKA_CONNECT_METRICS_ENABLED, String.valueOf(isMetricsEnabled)));
         heapOptions(varList, 1.0, 0L);
         jvmPerformanceOptions(varList);
-        if (getLogging() != null && getLogging().getCm() != null) {
-            varList.add(buildEnvVar(ENV_VAR_KAFKA_CONNECT_LOGGING, getLogging().getCm().toString()));
-        }
         return varList;
     }
 

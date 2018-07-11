@@ -279,7 +279,7 @@ public abstract class AbstractModel {
                     // correct logger
                 } else {
                     // incorrect logger
-                    log.warn(key + " is not valid logger");
+                    log.warn(key + " is not a valid logger");
                     return;
                 }
                 if (key.toString().contains("log4j.appender.CONSOLE")) {
@@ -329,6 +329,7 @@ public abstract class AbstractModel {
 
         } else {
             // field is not in the cluster CM
+            this.setLogging(new InlineLogging());
             return createPropertiesString(getDefaultLogConfig());
 
         }

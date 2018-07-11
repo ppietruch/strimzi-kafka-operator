@@ -671,7 +671,8 @@ public class KafkaAssemblyOperatorTest {
                 .withNamespace(clusterNamespace)
                 .endMetadata()
                 .withData(singletonMap(AbstractModel.ANCILLARY_CM_KEY_LOG_CONFIG,
-                        updatedKafkaCluster.parseLogging(LOG_ZOOKEEPER_CONFIG, null)))
+                        updatedZookeeperCluster.parseLogging(LOG_ZOOKEEPER_CONFIG, null)))
+
                 .build();
 
         when(mockCmOps.get(clusterNamespace, ZookeeperCluster.zookeeperMetricAndLogConfigsName(clusterName))).thenReturn(zkMetricsCm);

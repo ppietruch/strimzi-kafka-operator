@@ -43,7 +43,9 @@ import org.apache.logging.log4j.Logger;
 import java.util.ArrayList;
 import java.util.List;
 
+import static io.strimzi.operator.cluster.model.AbstractModel.ANCILLARY_CM_KEY_LOG_CONFIG;
 import static io.strimzi.operator.cluster.model.TopicOperator.topicOperatorName;
+import static io.strimzi.operator.cluster.operator.resource.StatefulSetOperator.ANNOTATION_GENERATION;
 
 /**
  * <p>Assembly operator for a "Kafka" assembly, which manages:</p>
@@ -64,6 +66,8 @@ public class KafkaAssemblyOperator extends AbstractAssemblyOperator<KubernetesCl
     private final PvcOperator pvcOperations;
     private final DeploymentOperator deploymentOperations;
     private final ConfigMapOperator configMapOperations;
+    protected ConfigMap oldKafkaCM = null;
+    protected ConfigMap oldZkCM = null;
 
     /**
      * @param vertx The Vertx instance
@@ -269,11 +273,20 @@ public class KafkaAssemblyOperator extends AbstractAssemblyOperator<KubernetesCl
                             kafka.getLogging() instanceof ExternalLogging ?
                                     configMapOperations.get(assemblyCm.getMetadata().getNamespace(), ((ExternalLogging) kafka.getLogging()).getName()) :
                                     null);
+                    StatefulSet ss = kafka.generateStatefulSet(isOpenShift);
+                    if (oldKafkaCM != null && !oldKafkaCM.getData().get(ANCILLARY_CM_KEY_LOG_CONFIG).toString().equals(logAndMetricsConfigMap.getData().get(ANCILLARY_CM_KEY_LOG_CONFIG))) {
+                        log.info("Kafka configmap change detected. Restarting pods");
+                        ss.getSpec().getTemplate().getMetadata().getAnnotations().put(ANNOTATION_GENERATION, "-1");
+                    } else {
+                        log.info("Kafka fresh start");
+                    }
+
                     KafkaClusterDescription desc =
                             new KafkaClusterDescription(kafka, kafka.generateService(), kafka.generateHeadlessService(),
-                                    logAndMetricsConfigMap, kafka.generateStatefulSet(isOpenShift),
+                                    logAndMetricsConfigMap, ss,
                                     kafka.generateClientsCASecret(), kafka.generateClientsPublicKeySecret(),
                                     kafka.generateBrokersClientsSecret(), kafka.generateBrokersInternalSecret());
+                    oldKafkaCM = kafka.getLogging().getCm();
 
                     future.complete(desc);
                 } catch (Throwable e) {
@@ -348,7 +361,6 @@ public class KafkaAssemblyOperator extends AbstractAssemblyOperator<KubernetesCl
 
     private final Future<ZookeeperClusterDescription> getZookeeperClusterDescription(KafkaAssembly kafkaAssembly, List<Secret> assemblySecrets) {
         Future<ZookeeperClusterDescription> fut = Future.future();
-
         vertx.createSharedWorkerExecutor("kubernetes-ops-pool").executeBlocking(
             future -> {
                 try {
@@ -358,10 +370,18 @@ public class KafkaAssemblyOperator extends AbstractAssemblyOperator<KubernetesCl
                             configMapOperations.get(kafkaAssembly.getMetadata().getNamespace(), ((ExternalLogging) zk.getLogging()).getName()) :
                             null);
 
+                    StatefulSet ss = zk.generateStatefulSet(isOpenShift);
+
+                    if (oldZkCM != null && !oldZkCM.getData().get(ANCILLARY_CM_KEY_LOG_CONFIG).toString().equals(logAndMetricsConfigMap.getData().get(ANCILLARY_CM_KEY_LOG_CONFIG))) {
+                        log.info("Zookeeper configmap change detected. Restarting pods");
+                        ss.getSpec().getTemplate().getMetadata().getAnnotations().put(ANNOTATION_GENERATION, "-1");
+                    } else {
+                        log.info("Zookeeper fresh start");
+                    }
                     ZookeeperClusterDescription desc =
                             new ZookeeperClusterDescription(zk, zk.generateService(), zk.generateHeadlessService(),
-                                    logAndMetricsConfigMap, zk.generateStatefulSet(isOpenShift), zk.generateNodesSecret());
-
+                                    logAndMetricsConfigMap, ss, zk.generateNodesSecret());
+                    oldZkCM = zk.getLogging().getCm();
                     future.complete(desc);
                 } catch (Throwable e) {
                     future.fail(e);

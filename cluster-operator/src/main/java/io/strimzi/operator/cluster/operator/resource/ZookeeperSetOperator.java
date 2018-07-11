@@ -52,6 +52,10 @@ public class ZookeeperSetOperator extends StatefulSetOperator {
             log.debug("Changed template spec => needs rolling update");
             return true;
         }
+        if (diff.isForcedRestart()) {
+            log.debug("Forced restart desired => needs rolling update");
+            return true;
+        }
         return false;
     }
 }
